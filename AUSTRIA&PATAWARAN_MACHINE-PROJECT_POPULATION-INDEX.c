@@ -51,6 +51,8 @@ void editCityName(City *city); // Carlos
 void removeBarangay(City *city); // Carlos
 void addBarangay(City *city); // Carlos
 void editBarangay(City *city); // Paolo
+void sortBarangays(City *city); // Paolo
+void sortCities(Province *province, int sortBy); // Paolo
 void viewCities(Province *province); // Carlos
 void addCity(Province *province); // Paolo
 void deleteCity(Province *province); // Paolo
@@ -67,10 +69,12 @@ void provinceMenu(Province *province, const char *filename); // Carlos
  */
 void caesar_encrypt(char *data, int len)
 {
-    // Iterates through each byte and applies the shift
+	char c;
+	// Go through each character to chift it by 3.
     for (int i = 0; i < len; i++)
     {
-        data[i] = (char)(data[i] + CAESAR_SHIFT);
+        c = data[i] + CAESAR_SHIFT;
+        data[i] = c;
     }
 }
 
@@ -83,10 +87,12 @@ void caesar_encrypt(char *data, int len)
  */
 void caesar_decrypt(char *data, int len)
 {
-    // Iterates through each byte and reverses the shift
+    char c;
+    // Go through each character to chift it by 3.
     for (int i = 0; i < len; i++)
     {
-        data[i] = (char)(data[i] - CAESAR_SHIFT);
+        c = data[i] - CAESAR_SHIFT;
+        data[i] = c;
     }
 }
 
@@ -285,18 +291,19 @@ void fillDummyData(Province *province)
  */
 int promptLogin(Province *province)
 {
-    char username[100], password[100];
+    char username[100]; 
+	char password[100];
     int result = 0;
     
     printf("Enter username: ");
-    // Reads username and password from user
     fgets(username, sizeof(username), stdin);
-    username[strcspn(username, "\n")] = '\0';
+    username[strcspn(username, "\n")] = '\0'; // remove new line
+    
     printf("Enter password: ");
     fgets(password, sizeof(password), stdin);
-    password[strcspn(password, "\n")] = '\0';
-    // Compares input to stored credentials
-    if (strcmp(username, province->username) == 0 && strcmp(password, province->password) == 0)
+    password[strcspn(password, "\n")] = '\0'; // remove new line
+    
+    if (strcmp(username, province->username) == 0 && strcmp(password, province->password) == 0) // compare both username and password to the file
     {
         result = 1;
     }
@@ -330,6 +337,43 @@ void editCityName(City *city)
 }
 
 /**
+ * Sorts the barangays in a city alphabetically by name.
+ *
+ * @param city Pointer to the City struct.
+ */
+void sortBarangays(City *city)
+{
+    int i, j;
+    for (i = 0; i < city->numBarangays - 1; i++) {
+        for (j = i + 1; j < city->numBarangays; j++) {
+            if (strcasecmp(city->barangayNames[i], city->barangayNames[j]) > 0) {
+                // Swap names
+                char tempName[50];
+                strcpy(tempName, city->barangayNames[i]);
+                strcpy(city->barangayNames[i], city->barangayNames[j]);
+                strcpy(city->barangayNames[j], tempName);
+                // Swap populationSizes
+                int tempInt = city->populationSizes[i];
+                city->populationSizes[i] = city->populationSizes[j];
+                city->populationSizes[j] = tempInt;
+                // Swap areas
+                float tempFloat = city->areas[i];
+                city->areas[i] = city->areas[j];
+                city->areas[j] = tempFloat;
+                // Swap avgHouseholdSizes
+                tempFloat = city->avgHouseholdSizes[i];
+                city->avgHouseholdSizes[i] = city->avgHouseholdSizes[j];
+                city->avgHouseholdSizes[j] = tempFloat;
+                // Swap formalHousingUnits
+                tempInt = city->formalHousingUnits[i];
+                city->formalHousingUnits[i] = city->formalHousingUnits[j];
+                city->formalHousingUnits[j] = tempInt;
+            }
+        }
+    }
+}
+
+/**
  * Removes a barangay from a city.
  * Prompts the user to select a barangay to delete and removes it.
  *
@@ -337,12 +381,13 @@ void editCityName(City *city)
  */
 void removeBarangay(City *city)
 {
-    int i = 0, delIdx = 0;
+    int i = 0;
+	int delIdx = 0;
     int exitFlag = 0;
     
     while (!exitFlag)
     {
-        if (city->numBarangays == 0)
+        if (city->numBarangays == 0) //Check if there are no barangays
         {
             printf("No barangays to remove.\n");
             exitFlag = 1;
@@ -350,16 +395,18 @@ void removeBarangay(City *city)
         else
         {
             printf("List of barangays\n");
-            // Iterates through barangays to display options
+            // Go through barangays to display options
             for (i = 0; i < city->numBarangays; i++)
             {
                 printf("%d. %s\n", i + 1, city->barangayNames[i]);
             }
+            
             printf("Enter the barangay to delete (1 to %d) 0 to cancel: ", city->numBarangays);
             // Reads user choice
             scanf("%d", &delIdx);
             // Clears buffer
             getchar();
+            
             if (delIdx == 0)
             {
                 exitFlag = 1;
@@ -380,6 +427,7 @@ void removeBarangay(City *city)
                     city->formalHousingUnits[i] = city->formalHousingUnits[i + 1];
                 }
                 city->numBarangays--;
+                sortBarangays(city);
                 calculateCityMetrics(city);
                 printf("Barangay removed.\n");
                 exitFlag = 1;
@@ -423,18 +471,24 @@ void addBarangay(City *city)
             fgets(city->barangayNames[barangayIndex], sizeof(city->barangayNames[barangayIndex]), stdin);
             // Removes newline character
             city->barangayNames[barangayIndex][strcspn(city->barangayNames[barangayIndex], "\n")] = '\0';
+            
             printf("Enter population size: ");
-            // Reads population size, area, household size, housing units
+            //  population size, area, household size, housing units
             scanf("%d", &city->populationSizes[barangayIndex]);
+            
             printf("Enter total area (km^2): ");
             scanf("%f", &city->areas[barangayIndex]);
+            
             printf("Enter average household size: ");
             scanf("%f", &city->avgHouseholdSizes[barangayIndex]);
+            
             printf("Enter number of formal housing units: ");
             scanf("%d", &city->formalHousingUnits[barangayIndex]);
             // Clears buffer
             getchar();
+            
             city->numBarangays++;
+            sortBarangays(city);
             calculateCityMetrics(city);
             printf("Barangay added.\n");
             exitFlag = 1;
@@ -550,6 +604,7 @@ void editBarangay(City *city)
                             printf("Invalid choice.\n");
                             break;
                     }
+                    sortBarangays(city);
                     calculateCityMetrics(city);
                 }
                 exitFlag = 1;
@@ -573,7 +628,7 @@ void sortCities(Province *province, int sortBy)
         for (j = i + 1; j < province->numCities; j++) {
             int cmp = 0;
             if (sortBy == 0) {
-                cmp = strcasecmp(province->cities[i].name, province->cities[j].name) > 0;
+                cmp = strcasecmp(province->cities[i].name, province->cities[j].name) > 0; // strcasecmp used for its case insensitivity
             } else if (sortBy == 1) {
                 cmp = province->cities[i].populationDensity < province->cities[j].populationDensity;
             }
@@ -591,7 +646,6 @@ void sortCities(Province *province, int sortBy)
  * Displays a list of cities and allows the user to view details of a selected city.
  *
  * @param province Pointer to the Province struct.
- * 
  */
 void viewCities(Province *province)
 {
@@ -614,23 +668,20 @@ void viewCities(Province *province)
         printf("Enter choice: ");
         scanf("%d", &sortChoice);
         getchar();
-        if (sortChoice == 1) {
-            sortCities(province, 0);
-        } else if (sortChoice == 2) {
+        if (sortChoice == 2) {
             // Ensure city metrics are up to date before sorting by density
             for (i = 0; i < province->numCities; i++) {
                 calculateCityMetrics(&province->cities[i]);
             }
             sortCities(province, 1);
         } else {
-            printf("Invalid choice. Defaulting to alphabetical.\n");
-            sortCities(province, 0);
+            // Default: keep alphabetical order (already sorted after add/edit)
         }
         exitFlag = 0;
         while (!exitFlag)
         {
             printf("List of cities\n");
-            // Iterates through cities to display options
+            // go through cities to display options
             for (i = 0; i < province->numCities; i++)
             {
                 printf("%d. %s\n", i + 1, province->cities[i].name);
@@ -662,6 +713,7 @@ void viewCities(Province *province)
                 printf("Population density: %.2f\n", city->populationDensity);
                 printf("HPI: %.2f\n", city->HPI);
                 printf("List of barangays:\n");
+                sortBarangays(city);
                 for (i = 0; i < city->numBarangays; i++)
                 {
                     printf("%d. %s\n", i + 1, city->barangayNames[i]);
@@ -767,6 +819,7 @@ void addCity(Province *province)
             }
             calculateCityMetrics(city);
             province->numCities++;
+            sortCities(province, 0); // Always keep cities sorted alphabetically
             province->overallHPI = calculateProvinceHPI(province);
             printf("City added.\n");
             exitFlag = 1;
@@ -915,6 +968,7 @@ void editCity(Province *province)
                     {
                         case 1:
                             editCityName(city);
+                            sortCities(province, 0); // Keep cities sorted after editing name
                             break;
                         case 2:
                             removeBarangay(city);
@@ -948,7 +1002,8 @@ void editCity(Province *province)
 void searchCity(Province *province)
 {
     char searchName[50];
-    int i = 0, found = 0;
+    int i = 0;
+	int found = 0;
     int exitFlag = 0;
     City *city;
     
@@ -959,10 +1014,11 @@ void searchCity(Province *province)
         fgets(searchName, sizeof(searchName), stdin);
         // Removes newline character
         searchName[strcspn(searchName, "\n")] = '\0';
+        
         found = 0;
         for (i = 0; i < province->numCities; i++)
         {
-            if (strcasecmp(province->cities[i].name, searchName) == 0)
+            if (strcasecmp(province->cities[i].name, searchName) == 0) // Check if the current city is the same as the one the user inputted
             {
                 printf("City found: %s\n", province->cities[i].name);
                 found = 1;
@@ -977,7 +1033,7 @@ void searchCity(Province *province)
                 exitFlag = 1;
             }
         }
-        if (!found)
+        if (!found) // if the loop goes to the end and still hasnt found a matching city.
         {
             printf("City not found.\n");
             exitFlag = 1;
