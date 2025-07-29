@@ -64,12 +64,10 @@ void provinceMenu(Province *province, const char *filename); // Carlos
  *
  * @param data Pointer to the buffer to encrypt.
  * @param len Length of the buffer.
- *
- * relevant lines:
- * - for loop: Iterates through each byte and applies the shift.
  */
 void caesar_encrypt(char *data, int len)
 {
+    // Iterates through each byte and applies the shift
     for (int i = 0; i < len; i++)
     {
         data[i] = (char)(data[i] + CAESAR_SHIFT);
@@ -82,12 +80,10 @@ void caesar_encrypt(char *data, int len)
  *
  * @param data Pointer to the buffer to decrypt.
  * @param len Length of the buffer.
- *
- * relevant lines:
- * - for loop: Iterates through each byte and reverses the shift.
  */
 void caesar_decrypt(char *data, int len)
 {
+    // Iterates through each byte and reverses the shift
     for (int i = 0; i < len; i++)
     {
         data[i] = (char)(data[i] - CAESAR_SHIFT);
@@ -101,10 +97,6 @@ void caesar_decrypt(char *data, int len)
  * @param username The username to use as the filename.
  * @param province Pointer to the Province struct to save.
  * @return 1 on success, 0 on failure.
- *
- * relevant lines:
- * - caesar_encrypt: Encrypts the struct before writing.
- * - fwrite: Writes the encrypted data to file.
  */
 int saveProvinceEncrypted(const char *username, Province *province)
 {
@@ -121,7 +113,9 @@ int saveProvinceEncrypted(const char *username, Province *province)
         buffer = (char *)province;
         len = sizeof(Province);
         memcpy(temp, buffer, len);
+        // Encrypts the struct before writing
         caesar_encrypt(temp, len);
+        // Writes the encrypted data to file
         fwrite(temp, 1, len, fp);
         fclose(fp);
         result = 1;
@@ -136,10 +130,6 @@ int saveProvinceEncrypted(const char *username, Province *province)
  * @param username The username to use as the filename.
  * @param province Pointer to the Province struct to load into.
  * @return 1 on success, 0 on failure.
- *
- * relevant lines:
- * - fread: Reads the encrypted data from file.
- * - caesar_decrypt: Decrypts the struct after reading.
  */
 int loadProvinceEncrypted(const char *username, Province *province)
 {
@@ -154,9 +144,11 @@ int loadProvinceEncrypted(const char *username, Province *province)
     fp = fopen(filename, "rb");
     if (fp) {
         len = sizeof(Province);
+        // Reads the encrypted data from file
         read = fread(temp, 1, len, fp);
         fclose(fp);
         if (read == len) {
+            // Decrypts the struct after reading
             caesar_decrypt(temp, len);
             memcpy(province, temp, len);
             result = 1;
@@ -171,10 +163,6 @@ int loadProvinceEncrypted(const char *username, Province *province)
  *
  * @param c Pointer to the City struct.
  * @return Weighted average household size.
- *
- * relevant lines:
- * - for loop: Sums up population and households for all barangays.
- * - Returns 0 if totalHouseholds is 0.
  */
 float calculateAvgHouseholdSize(City *c)
 {
@@ -183,11 +171,13 @@ float calculateAvgHouseholdSize(City *c)
     int i;
     float result = 0;
     
+    // Sums up population and households for all barangays
     for (i = 0; i < c->numBarangays; i++)
     {
         totalPeople += c->populationSizes[i];
         totalHouseholds += c->populationSizes[i] / c->avgHouseholdSizes[i];
     }
+    // Returns 0 if totalHouseholds is 0
     if (totalHouseholds != 0) {
         result = totalPeople / totalHouseholds;
     }
@@ -199,10 +189,6 @@ float calculateAvgHouseholdSize(City *c)
  * Updates population, area, housing units, household size, density, and HPI.
  *
  * @param city Pointer to the City struct to update.
- *
- * relevant lines:
- * - for loop: Aggregates data from all barangays.
- * - Calls calculateAvgHouseholdSize for weighted average.
  */
 void calculateCityMetrics(City *city)
 {
@@ -211,12 +197,14 @@ void calculateCityMetrics(City *city)
     city->totalPopulation = 0;
     city->totalArea = 0;
     city->totalHousingUnits = 0;
+    // Aggregates data from all barangays
     for (i = 0; i < city->numBarangays; i++)
     {
         city->totalPopulation += city->populationSizes[i];
         city->totalArea += city->areas[i];
         city->totalHousingUnits += city->formalHousingUnits[i];
     }
+    // Calls calculateAvgHouseholdSize for weighted average
     city->avgHouseholdSize = calculateAvgHouseholdSize(city);
     city->populationDensity = (city->totalArea == 0) ? 0 : (float)city->totalPopulation / city->totalArea;
     city->HPI = (city->totalHousingUnits == 0) ? 0 :
@@ -229,10 +217,6 @@ void calculateCityMetrics(City *city)
  *
  * @param p Pointer to the Province struct.
  * @return The overall HPI value.
- *
- * relevant lines:
- * - for loop: Iterates through all cities and updates their metrics.
- * - Returns 0 if totalUnits is 0.
  */
 float calculateProvinceHPI(Province *p)
 {
@@ -242,6 +226,7 @@ float calculateProvinceHPI(Province *p)
     City *c;
     float result = 0;
     
+    // Iterates through all cities and updates their metrics
     for (i = 0; i < p->numCities; i++)
     {
         calculateCityMetrics(&p->cities[i]);
@@ -249,6 +234,7 @@ float calculateProvinceHPI(Province *p)
         totalPeople += c->populationDensity * c->avgHouseholdSize;
         totalUnits += c->totalHousingUnits;
     }
+    // Returns 0 if totalUnits is 0
     if (totalUnits != 0) {
         result = totalPeople / totalUnits;
     }
@@ -260,10 +246,6 @@ float calculateProvinceHPI(Province *p)
  * Populates with two cities, each with two barangays.
  *
  * @param province Pointer to the Province struct to fill.
- *
- * relevant lines:
- * - for loop: Fills cities and barangays with sample data.
- * - Calls calculateCityMetrics and calculateProvinceHPI.
  */
 void fillDummyData(Province *province)
 {
@@ -274,6 +256,7 @@ void fillDummyData(Province *province)
     strcpy(province->username, "admin");
     strcpy(province->password, "admin");
     province->numCities = 2;
+    // Fills cities and barangays with sample data
     for (i = 0; i < province->numCities; i++)
     {
         city = &province->cities[i];
@@ -289,6 +272,7 @@ void fillDummyData(Province *province)
         }
         calculateCityMetrics(city);
     }
+    // Calls calculateCityMetrics and calculateProvinceHPI
     province->overallHPI = calculateProvinceHPI(province);
 }
 
@@ -298,10 +282,6 @@ void fillDummyData(Province *province)
  *
  * @param province Pointer to the Province struct.
  * @return 1 if login successful, 0 otherwise.
- *
- * relevant lines:
- * - fgets: Reads username and password from user.
- * - strcmp: Compares input to stored credentials.
  */
 int promptLogin(Province *province)
 {
@@ -309,11 +289,13 @@ int promptLogin(Province *province)
     int result = 0;
     
     printf("Enter username: ");
+    // Reads username and password from user
     fgets(username, sizeof(username), stdin);
     username[strcspn(username, "\n")] = '\0';
     printf("Enter password: ");
     fgets(password, sizeof(password), stdin);
     password[strcspn(password, "\n")] = '\0';
+    // Compares input to stored credentials
     if (strcmp(username, province->username) == 0 && strcmp(password, province->password) == 0)
     {
         result = 1;
@@ -330,10 +312,6 @@ int promptLogin(Province *province)
  * Prompts the user for a new name and updates the city struct.
  *
  * @param city Pointer to the City struct.
- *
- * relevant lines:
- * - fgets: Reads new name from user.
- * - strcspn: Removes newline character.
  */
 void editCityName(City *city)
 {
@@ -342,7 +320,9 @@ void editCityName(City *city)
     while (!exitFlag)
     {
         printf("Enter new city name: ");
+        // Reads new name from user
         fgets(city->name, sizeof(city->name), stdin);
+        // Removes newline character
         city->name[strcspn(city->name, "\n")] = '\0';
         printf("City name updated.\n");
         exitFlag = 1;
@@ -354,11 +334,6 @@ void editCityName(City *city)
  * Prompts the user to select a barangay to delete and removes it.
  *
  * @param city Pointer to the City struct.
- *
- * relevant lines:
- * - for loop: Iterates through barangays to display options.
- * - scanf: Reads user choice.
- * - getchar: Clears buffer.
  */
 void removeBarangay(City *city)
 {
@@ -375,12 +350,15 @@ void removeBarangay(City *city)
         else
         {
             printf("List of barangays\n");
+            // Iterates through barangays to display options
             for (i = 0; i < city->numBarangays; i++)
             {
                 printf("%d. %s\n", i + 1, city->barangayNames[i]);
             }
             printf("Enter the barangay to delete (1 to %d) 0 to cancel: ", city->numBarangays);
+            // Reads user choice
             scanf("%d", &delIdx);
+            // Clears buffer
             getchar();
             if (delIdx == 0)
             {
@@ -415,22 +393,16 @@ void removeBarangay(City *city)
  * Prompts the user for barangay details and adds it to the city.
  *
  * @param city Pointer to the City struct.
- *
- * relevant lines:
- * - while loop: Continues until user decides not to add more.
- * - if statement: Checks if max barangays reached.
- * - fgets: Reads barangay name.
- * - strcspn: Removes newline character.
- * - scanf: Reads population size, area, household size, housing units.
- * - getchar: Clears buffer.
  */
 void addBarangay(City *city)
 {
     int exitFlag = 0;
     int barangayIndex;
     
+    // Continues until user decides not to add more
     while (!exitFlag)
     {
+        // Checks if max barangays reached
         if (city->numBarangays >= MAX_BARANGAYS)
         {
             printf("Maximum number of barangays reached.\n");
@@ -447,9 +419,12 @@ void addBarangay(City *city)
             city->formalHousingUnits[barangayIndex] = 0;
 
             printf("Enter barangay name: ");
+            // Reads barangay name
             fgets(city->barangayNames[barangayIndex], sizeof(city->barangayNames[barangayIndex]), stdin);
+            // Removes newline character
             city->barangayNames[barangayIndex][strcspn(city->barangayNames[barangayIndex], "\n")] = '\0';
             printf("Enter population size: ");
+            // Reads population size, area, household size, housing units
             scanf("%d", &city->populationSizes[barangayIndex]);
             printf("Enter total area (km^2): ");
             scanf("%f", &city->areas[barangayIndex]);
@@ -457,6 +432,7 @@ void addBarangay(City *city)
             scanf("%f", &city->avgHouseholdSizes[barangayIndex]);
             printf("Enter number of formal housing units: ");
             scanf("%d", &city->formalHousingUnits[barangayIndex]);
+            // Clears buffer
             getchar();
             city->numBarangays++;
             calculateCityMetrics(city);
@@ -471,13 +447,6 @@ void addBarangay(City *city)
  * Prompts the user to select a barangay to edit and allows editing its details.
  *
  * @param city Pointer to the City struct.
- *
- * relevant lines:
- * - for loop: Iterates through barangays to display options.
- * - scanf: Reads user choice.
- * - getchar: Clears buffer.
- * - while loop: Continues until user decides to exit.
- * - switch statement: Handles different edit options.
  */
 void editBarangay(City *city)
 {
@@ -496,12 +465,15 @@ void editBarangay(City *city)
         else
         {
             printf("List of barangays\n");
+            // Iterates through barangays to display options
             for (i = 0; i < city->numBarangays; i++)
             {
                 printf("%d. %s\n", i + 1, city->barangayNames[i]);
             }
             printf("Enter the Barangay to edit (1 to %d) 0 to cancel: ", city->numBarangays);
+            // Reads user choice
             scanf("%d", &bchoice);
+            // Clears buffer
             getchar();
             if (bchoice == 0)
             {
@@ -516,6 +488,7 @@ void editBarangay(City *city)
             {
                 barangayIndex = bchoice - 1;
                 exitFlag2 = 0;
+                // Continues until user decides to exit
                 while (!exitFlag2)
                 {
                     printf("\nBarangay: %s\n", city->barangayNames[barangayIndex]);
@@ -537,6 +510,7 @@ void editBarangay(City *city)
                     bEditChoice = 0;
                     scanf("%d", &bEditChoice);
                     getchar();
+                    // Handles different edit options
                     switch (bEditChoice)
                     {
                         case 1:
@@ -589,11 +563,6 @@ void editBarangay(City *city)
  * Displays a list of cities and allows the user to view details of a selected city.
  *
  * @param province Pointer to the Province struct.
- *
- * relevant lines:
- * - for loop: Iterates through cities to display options.
- * - scanf: Reads user choice.
- * - getchar: Clears buffer.
  */
 void viewCities(Province *province)
 {
@@ -612,6 +581,7 @@ void viewCities(Province *province)
         while (!exitFlag)
         {
             printf("List of cities\n");
+            // Iterates through cities to display options
             for (i = 0; i < province->numCities; i++)
             {
                 printf("%d. %s\n", i + 1, province->cities[i].name);
@@ -619,7 +589,9 @@ void viewCities(Province *province)
             printf("---------------------------------------------\n");
             printf("Enter the City to view (1 to %d) 0 to cancel: ", province->numCities);
             cityChoice = 0;
+            // Reads user choice
             scanf("%d", &cityChoice);
+            // Clears buffer
             getchar();
             if (cityChoice == 0)
             {
@@ -660,17 +632,6 @@ void viewCities(Province *province)
  * Prompts the user for city name and allows adding multiple barangays to it.
  *
  * @param province Pointer to the Province struct.
- *
- * relevant lines:
- * - while loop: Continues until user decides not to add more barangays.
- * - if statement: Checks if max barangays reached for the city.
- * - fgets: Reads city name.
- * - strcspn: Removes newline character.
- * - while loop: Continues until user decides not to add more barangays.
- * - fgets: Reads barangay name.
- * - strcspn: Removes newline character.
- * - scanf: Reads population size, area, household size, housing units.
- * - getchar: Clears buffer.
  */
 void addCity(Province *province)
 {
@@ -679,8 +640,10 @@ void addCity(Province *province)
     char addMore;
     int barangayIndex;
     
+    // Continues until user decides not to add more barangays
     while (!exitFlag)
     {
+        // Checks if max barangays reached for the city
         if (province->numCities >= MAX_CITIES)
         {
             printf("Maximum number of cities reached.\n");
@@ -700,11 +663,14 @@ void addCity(Province *province)
             city->HPI = 0.0f;
 
             printf("Enter city name: ");
+            // Reads city name
             fgets(city->name, sizeof(city->name), stdin);
+            // Removes newline character
             city->name[strcspn(city->name, "\n")] = '\0';
             city->numBarangays = 0;
             // Prompt to add barangays
             addMore = 'y';
+            // Continues until user decides not to add more barangays
             while (addMore == 'y' || addMore == 'Y')
             {
                 if (city->numBarangays >= MAX_BARANGAYS)
@@ -719,9 +685,12 @@ void addCity(Province *province)
                 city->avgHouseholdSizes[barangayIndex] = 0.0f;
                 city->formalHousingUnits[barangayIndex] = 0;
                 printf("Enter barangay name: ");
+                // Reads barangay name
                 fgets(city->barangayNames[barangayIndex], sizeof(city->barangayNames[barangayIndex]), stdin);
+                // Removes newline character
                 city->barangayNames[barangayIndex][strcspn(city->barangayNames[barangayIndex], "\n")] = '\0';
                 printf("Enter population size: ");
+                // Reads population size, area, household size, housing units
                 scanf("%d", &city->populationSizes[barangayIndex]);
                 printf("Enter total area (km^2): ");
                 scanf("%f", &city->areas[barangayIndex]);
@@ -729,6 +698,7 @@ void addCity(Province *province)
                 scanf("%f", &city->avgHouseholdSizes[barangayIndex]);
                 printf("Enter number of formal housing units: ");
                 scanf("%d", &city->formalHousingUnits[barangayIndex]);
+                // Clears buffer
                 getchar();
                 city->numBarangays++;
                 printf("Barangay added.\n");
@@ -757,11 +727,6 @@ void addCity(Province *province)
  * Prompts the user to select a city to delete and removes it.
  *
  * @param province Pointer to the Province struct.
- *
- * relevant lines:
- * - for loop: Iterates through cities to display options.
- * - scanf: Reads user choice.
- * - getchar: Clears buffer.
  */
 void deleteCity(Province *province)
 {
@@ -778,13 +743,16 @@ void deleteCity(Province *province)
         else
         {
             printf("List of cities\n");
+            // Iterates through cities to display options
             for (i = 0; i < province->numCities; i++)
             {
                 printf("%d. %s\n", i + 1, province->cities[i].name);
             }
             printf("Enter the city to delete (1 to %d) 0 to cancel: ", province->numCities);
             delIdx = 0;
+            // Reads user choice
             scanf("%d", &delIdx);
+            // Clears buffer
             getchar();
             if (delIdx == 0)
             {
@@ -815,13 +783,6 @@ void deleteCity(Province *province)
  * Displays a menu for managing a city's barangays and allows editing its name.
  *
  * @param province Pointer to the Province struct.
- *
- * relevant lines:
- * - for loop: Iterates through cities to display options.
- * - scanf: Reads user choice.
- * - getchar: Clears buffer.
- * - while loop: Continues until user decides to exit.
- * - switch statement: Handles different edit options.
  */
 void editCity(Province *province)
 {
@@ -841,13 +802,16 @@ void editCity(Province *province)
         else
         {
             printf("List of cities\n");
+            // Iterates through cities to display options
             for (i = 0; i < province->numCities; i++)
             {
                 printf("%d. %s\n", i + 1, province->cities[i].name);
             }
             printf("Enter the city to edit (1 to %d) 0 to cancel: ", province->numCities);
             editIdx = 0;
+            // Reads user choice
             scanf("%d", &editIdx);
+            // Clears buffer
             getchar();
             if (editIdx == 0)
             {
@@ -862,6 +826,7 @@ void editCity(Province *province)
             {
                 city = &province->cities[editIdx - 1];
                 exitFlag2 = 0;
+                // Continues until user decides to exit
                 while (!exitFlag2)
                 {
                     calculateCityMetrics(city);
@@ -893,6 +858,7 @@ void editCity(Province *province)
                     cityEditChoice = 0;
                     scanf("%d", &cityEditChoice);
                     getchar();
+                    // Handles different edit options
                     switch (cityEditChoice)
                     {
                         case 1:
@@ -926,10 +892,6 @@ void editCity(Province *province)
  * Prompts the user for a city name to search for and displays its information if found.
  *
  * @param province Pointer to the Province struct.
- *
- * relevant lines:
- * - fgets: Reads search name from user.
- * - strcspn: Removes newline character.
  */
 void searchCity(Province *province)
 {
@@ -941,7 +903,9 @@ void searchCity(Province *province)
     while (!exitFlag)
     {
         printf("Enter city name to search: ");
+        // Reads search name from user
         fgets(searchName, sizeof(searchName), stdin);
+        // Removes newline character
         searchName[strcspn(searchName, "\n")] = '\0';
         found = 0;
         for (i = 0; i < province->numCities; i++)
@@ -976,15 +940,12 @@ void searchCity(Province *province)
  *
  * @param province Pointer to the Province struct.
  * @param filename Username used for saving the file.
- *
- * relevant lines:
- * - do-while loop: Continues until user chooses to save and exit.
- * - switch statement: Handles different menu options.
  */
 void provinceMenu(Province *province, const char *filename)
 {
     int choice = 0;
     
+    // Continues until user chooses to save and exit
     do
     {
         printf("\nProvince: %s\n", province->provinceName);
@@ -999,6 +960,7 @@ void provinceMenu(Province *province, const char *filename)
         choice = 0;
         scanf("%d", &choice);
         getchar(); // clear buffer
+        // Handles different menu options
         switch (choice)
         {
         case 1:
@@ -1032,10 +994,6 @@ void provinceMenu(Province *province, const char *filename)
 /**
  * Main menu and program entry point. Handles file creation/loading, login, and launches the province menu.
  * Displays a main menu for file operations, test data, and exit.
- *
- * relevant lines:
- * - while loop: Continues until user chooses to exit.
- * - switch statement: Handles different main menu options.
  */
 int main()
 {
@@ -1048,6 +1006,7 @@ int main()
     int passwordAttempts = 0;
     int resetChoice = 0;
 
+    // Continues until user chooses to exit
     while (1)
     {
         printf("\n[1] Add new File\n");
@@ -1058,6 +1017,7 @@ int main()
         scanf("%d", &mainChoice);
         getchar(); // clear buffer
 
+        // Handles different main menu options
         if (mainChoice == 1)
         {
             // New file creation and login
