@@ -6,20 +6,17 @@
 #define MAX_BARANGAYS 20
 #define CAESAR_SHIFT 3
 
-// Struc for barangay
+// Struc for city with 2D arrays for barangay data
 typedef struct {
     char name[50];
-    int populationSize;
-    float area;
-    float avgHouseholdSize;
-    int formalHousingUnits;
-} Barangay;
-
-// Struc for city
-typedef struct {
-    char name[50];
-    Barangay barangays[MAX_BARANGAYS];
     int numBarangays;
+
+    // 2D arrays for barangay data
+    int populationSizes[MAX_BARANGAYS];
+    float areas[MAX_BARANGAYS];
+    float avgHouseholdSizes[MAX_BARANGAYS];
+    int formalHousingUnits[MAX_BARANGAYS];
+    char barangayNames[MAX_BARANGAYS][50];
 
     // total data from the barangays
     int totalPopulation;
@@ -184,14 +181,12 @@ float calculateAvgHouseholdSize(City *c)
     float totalPeople = 0;
     float totalHouseholds = 0;
     int i;
-    Barangay *b;
     float result = 0;
     
     for (i = 0; i < c->numBarangays; i++)
     {
-        b = &c->barangays[i];
-        totalPeople += b->populationSize;
-        totalHouseholds += b->populationSize / b->avgHouseholdSize;
+        totalPeople += c->populationSizes[i];
+        totalHouseholds += c->populationSizes[i] / c->avgHouseholdSizes[i];
     }
     if (totalHouseholds != 0) {
         result = totalPeople / totalHouseholds;
@@ -212,17 +207,15 @@ float calculateAvgHouseholdSize(City *c)
 void calculateCityMetrics(City *city)
 {
     int i;
-    Barangay *b;
     
     city->totalPopulation = 0;
     city->totalArea = 0;
     city->totalHousingUnits = 0;
     for (i = 0; i < city->numBarangays; i++)
     {
-        b = &city->barangays[i];
-        city->totalPopulation += b->populationSize;
-        city->totalArea += b->area;
-        city->totalHousingUnits += b->formalHousingUnits;
+        city->totalPopulation += city->populationSizes[i];
+        city->totalArea += city->areas[i];
+        city->totalHousingUnits += city->formalHousingUnits[i];
     }
     city->avgHouseholdSize = calculateAvgHouseholdSize(city);
     city->populationDensity = (city->totalArea == 0) ? 0 : (float)city->totalPopulation / city->totalArea;
@@ -276,7 +269,6 @@ void fillDummyData(Province *province)
 {
     int i, j;
     City *city;
-    Barangay *b;
     
     strcpy(province->provinceName, "TestProvince");
     strcpy(province->username, "admin");
@@ -289,12 +281,11 @@ void fillDummyData(Province *province)
         city->numBarangays = 2;
         for (j = 0; j < city->numBarangays; j++)
         {
-            b = &city->barangays[j];
-            sprintf(b->name, "Barangay%d", j + 1);
-            b->populationSize = 1000 * (j + 1);
-            b->area = 2.5f * (j + 1);
-            b->avgHouseholdSize = 4.0f;
-            b->formalHousingUnits = 200 * (j + 1);
+            sprintf(city->barangayNames[j], "Barangay%d", j + 1);
+            city->populationSizes[j] = 1000 * (j + 1);
+            city->areas[j] = 2.5f * (j + 1);
+            city->avgHouseholdSizes[j] = 4.0f;
+            city->formalHousingUnits[j] = 200 * (j + 1);
         }
         calculateCityMetrics(city);
     }
@@ -386,7 +377,7 @@ void removeBarangay(City *city)
             printf("List of barangays\n");
             for (i = 0; i < city->numBarangays; i++)
             {
-                printf("%d. %s\n", i + 1, city->barangays[i].name);
+                printf("%d. %s\n", i + 1, city->barangayNames[i]);
             }
             printf("Enter the barangay to delete (1 to %d) 0 to cancel: ", city->numBarangays);
             scanf("%d", &delIdx);
@@ -404,7 +395,11 @@ void removeBarangay(City *city)
             {
                 for (i = delIdx - 1; i < city->numBarangays - 1; i++)
                 {
-                    city->barangays[i] = city->barangays[i + 1];
+                    strcpy(city->barangayNames[i], city->barangayNames[i + 1]);
+                    city->populationSizes[i] = city->populationSizes[i + 1];
+                    city->areas[i] = city->areas[i + 1];
+                    city->avgHouseholdSizes[i] = city->avgHouseholdSizes[i + 1];
+                    city->formalHousingUnits[i] = city->formalHousingUnits[i + 1];
                 }
                 city->numBarangays--;
                 calculateCityMetrics(city);
@@ -432,7 +427,7 @@ void removeBarangay(City *city)
 void addBarangay(City *city)
 {
     int exitFlag = 0;
-    Barangay *b;
+    int barangayIndex;
     
     while (!exitFlag)
     {
@@ -443,25 +438,25 @@ void addBarangay(City *city)
         }
         else
         {
-            b = &city->barangays[city->numBarangays];
+            barangayIndex = city->numBarangays;
             //initialize values
-            b->name[0] = '\0';
-            b->populationSize = 0;
-            b->area = 0.0f;
-            b->avgHouseholdSize = 0.0f;
-            b->formalHousingUnits = 0;
+            city->barangayNames[barangayIndex][0] = '\0';
+            city->populationSizes[barangayIndex] = 0;
+            city->areas[barangayIndex] = 0.0f;
+            city->avgHouseholdSizes[barangayIndex] = 0.0f;
+            city->formalHousingUnits[barangayIndex] = 0;
 
             printf("Enter barangay name: ");
-            fgets(b->name, sizeof(b->name), stdin);
-            b->name[strcspn(b->name, "\n")] = '\0';
+            fgets(city->barangayNames[barangayIndex], sizeof(city->barangayNames[barangayIndex]), stdin);
+            city->barangayNames[barangayIndex][strcspn(city->barangayNames[barangayIndex], "\n")] = '\0';
             printf("Enter population size: ");
-            scanf("%d", &b->populationSize);
+            scanf("%d", &city->populationSizes[barangayIndex]);
             printf("Enter total area (km^2): ");
-            scanf("%f", &b->area);
+            scanf("%f", &city->areas[barangayIndex]);
             printf("Enter average household size: ");
-            scanf("%f", &b->avgHouseholdSize);
+            scanf("%f", &city->avgHouseholdSizes[barangayIndex]);
             printf("Enter number of formal housing units: ");
-            scanf("%d", &b->formalHousingUnits);
+            scanf("%d", &city->formalHousingUnits[barangayIndex]);
             getchar();
             city->numBarangays++;
             calculateCityMetrics(city);
@@ -488,7 +483,7 @@ void editBarangay(City *city)
 {
     int i = 0, bchoice = 0, bEditChoice = 0;
     int exitFlag = 0;
-    Barangay *b;
+    int barangayIndex;
     int exitFlag2 = 0;
     
     while (!exitFlag)
@@ -503,7 +498,7 @@ void editBarangay(City *city)
             printf("List of barangays\n");
             for (i = 0; i < city->numBarangays; i++)
             {
-                printf("%d. %s\n", i + 1, city->barangays[i].name);
+                printf("%d. %s\n", i + 1, city->barangayNames[i]);
             }
             printf("Enter the Barangay to edit (1 to %d) 0 to cancel: ", city->numBarangays);
             scanf("%d", &bchoice);
@@ -519,15 +514,15 @@ void editBarangay(City *city)
             }
             else
             {
-                b = &city->barangays[bchoice - 1];
+                barangayIndex = bchoice - 1;
                 exitFlag2 = 0;
                 while (!exitFlag2)
                 {
-                    printf("\nBarangay: %s\n", b->name);
-                    printf("Total population: %d\n", b->populationSize);
-                    printf("Total area: %.2f\n", b->area);
-                    printf("Total housing units: %d\n", b->formalHousingUnits);
-                    printf("Average household size: %.2f\n", b->avgHouseholdSize);
+                    printf("\nBarangay: %s\n", city->barangayNames[barangayIndex]);
+                    printf("Total population: %d\n", city->populationSizes[barangayIndex]);
+                    printf("Total area: %.2f\n", city->areas[barangayIndex]);
+                    printf("Total housing units: %d\n", city->formalHousingUnits[barangayIndex]);
+                    printf("Average household size: %.2f\n", city->avgHouseholdSizes[barangayIndex]);
                     printf("Population density: N/A (handled at city level)\n");
                     printf("HPI: N/A (handled at city level)\n");
                     printf("---------------------------------------------\n");
@@ -546,31 +541,31 @@ void editBarangay(City *city)
                     {
                         case 1:
                             printf("Enter new barangay name: ");
-                            fgets(b->name, sizeof(b->name), stdin);
-                            b->name[strcspn(b->name, "\n")] = '\0';
+                            fgets(city->barangayNames[barangayIndex], sizeof(city->barangayNames[barangayIndex]), stdin);
+                            city->barangayNames[barangayIndex][strcspn(city->barangayNames[barangayIndex], "\n")] = '\0';
                             printf("Barangay name updated.\n");
                             break;
                         case 2:
                             printf("Enter new population size: ");
-                            scanf("%d", &b->populationSize);
+                            scanf("%d", &city->populationSizes[barangayIndex]);
                             getchar();
                             printf("Population size updated.\n");
                             break;
                         case 3:
                             printf("Enter new area (km^2): ");
-                            scanf("%f", &b->area);
+                            scanf("%f", &city->areas[barangayIndex]);
                             getchar();
                             printf("Area updated.\n");
                             break;
                         case 4:
                             printf("Enter new average household size: ");
-                            scanf("%f", &b->avgHouseholdSize);
+                            scanf("%f", &city->avgHouseholdSizes[barangayIndex]);
                             getchar();
                             printf("Average household size updated.\n");
                             break;
                         case 5:
                             printf("Enter new number of formal housing units: ");
-                            scanf("%d", &b->formalHousingUnits);
+                            scanf("%d", &city->formalHousingUnits[barangayIndex]);
                             getchar();
                             printf("Formal housing units updated.\n");
                             break;
@@ -606,7 +601,6 @@ void viewCities(Province *province)
     int i = 0;
     int exitFlag = 0;
     City *city = NULL;
-    Barangay *b = NULL;
     
     if (province->numCities == 0)
     {
@@ -649,12 +643,11 @@ void viewCities(Province *province)
                 printf("List of barangays:\n");
                 for (i = 0; i < city->numBarangays; i++)
                 {
-                    b = &city->barangays[i];
-                    printf("%d. %s\n", i + 1, b->name);
-                    printf("   Population: %d\n", b->populationSize);
-                    printf("   Area: %.2f\n", b->area);
-                    printf("   Avg Household Size: %.2f\n", b->avgHouseholdSize);
-                    printf("   Formal Housing Units: %d\n", b->formalHousingUnits);
+                    printf("%d. %s\n", i + 1, city->barangayNames[i]);
+                    printf("   Population: %d\n", city->populationSizes[i]);
+                    printf("   Area: %.2f\n", city->areas[i]);
+                    printf("   Avg Household Size: %.2f\n", city->avgHouseholdSizes[i]);
+                    printf("   Formal Housing Units: %d\n", city->formalHousingUnits[i]);
                 }
                 printf("---------------------------------------------\n");
             }
@@ -684,7 +677,7 @@ void addCity(Province *province)
     int exitFlag = 0;
     City *city;
     char addMore;
-    Barangay *b;
+    int barangayIndex;
     
     while (!exitFlag)
     {
@@ -719,23 +712,23 @@ void addCity(Province *province)
                     printf("Maximum number of barangays reached for this city.\n");
                     break;
                 }
-                b = &city->barangays[city->numBarangays];
-                b->name[0] = '\0';
-                b->populationSize = 0;
-                b->area = 0.0f;
-                b->avgHouseholdSize = 0.0f;
-                b->formalHousingUnits = 0;
+                barangayIndex = city->numBarangays;
+                city->barangayNames[barangayIndex][0] = '\0';
+                city->populationSizes[barangayIndex] = 0;
+                city->areas[barangayIndex] = 0.0f;
+                city->avgHouseholdSizes[barangayIndex] = 0.0f;
+                city->formalHousingUnits[barangayIndex] = 0;
                 printf("Enter barangay name: ");
-                fgets(b->name, sizeof(b->name), stdin);
-                b->name[strcspn(b->name, "\n")] = '\0';
+                fgets(city->barangayNames[barangayIndex], sizeof(city->barangayNames[barangayIndex]), stdin);
+                city->barangayNames[barangayIndex][strcspn(city->barangayNames[barangayIndex], "\n")] = '\0';
                 printf("Enter population size: ");
-                scanf("%d", &b->populationSize);
+                scanf("%d", &city->populationSizes[barangayIndex]);
                 printf("Enter total area (km^2): ");
-                scanf("%f", &b->area);
+                scanf("%f", &city->areas[barangayIndex]);
                 printf("Enter average household size: ");
-                scanf("%f", &b->avgHouseholdSize);
+                scanf("%f", &city->avgHouseholdSizes[barangayIndex]);
                 printf("Enter number of formal housing units: ");
-                scanf("%d", &b->formalHousingUnits);
+                scanf("%d", &city->formalHousingUnits[barangayIndex]);
                 getchar();
                 city->numBarangays++;
                 printf("Barangay added.\n");
@@ -837,7 +830,6 @@ void editCity(Province *province)
     City *city;
     int exitFlag2 = 0;
     int cityEditChoice = 0;
-    Barangay *b;
     
     while (!exitFlag)
     {
@@ -884,12 +876,11 @@ void editCity(Province *province)
                     printf("List of barangays:\n");
                     for (i = 0; i < city->numBarangays; i++)
                     {
-                        b = &city->barangays[i];
-                        printf("%d. %s\n", i + 1, b->name);
-                        printf("   Population: %d\n", b->populationSize);
-                        printf("   Area: %.2f\n", b->area);
-                        printf("   Avg Household Size: %.2f\n", b->avgHouseholdSize);
-                        printf("   Formal Housing Units: %d\n", b->formalHousingUnits);
+                        printf("%d. %s\n", i + 1, city->barangayNames[i]);
+                        printf("   Population: %d\n", city->populationSizes[i]);
+                        printf("   Area: %.2f\n", city->areas[i]);
+                        printf("   Avg Household Size: %.2f\n", city->avgHouseholdSizes[i]);
+                        printf("   Formal Housing Units: %d\n", city->formalHousingUnits[i]);
                     }
                     printf("---------------------------------------------\n");
                     printf("What would you like to edit?\n");
