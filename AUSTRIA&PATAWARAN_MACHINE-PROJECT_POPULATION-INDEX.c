@@ -559,6 +559,35 @@ void editBarangay(City *city)
 }
 
 /**
+ * Sorts the cities in the province either alphabetically by name or by highest population density.
+ *
+ * @param province Pointer to the Province struct.
+ * @param sortBy 0 for alphabetical, 1 for population density.
+ *
+ * Relevant lines: 567-628 (viewCities)
+ */
+void sortCities(Province *province, int sortBy)
+{
+    int i, j;
+    City temp;
+    for (i = 0; i < province->numCities - 1; i++) {
+        for (j = i + 1; j < province->numCities; j++) {
+            int cmp = 0;
+            if (sortBy == 0) {
+                cmp = strcasecmp(province->cities[i].name, province->cities[j].name) > 0;
+            } else if (sortBy == 1) {
+                cmp = province->cities[i].populationDensity < province->cities[j].populationDensity;
+            }
+            if (cmp) {
+                temp = province->cities[i];
+                province->cities[i] = province->cities[j];
+                province->cities[j] = temp;
+            }
+        }
+    }
+}
+
+/**
  * View cities and select one to edit (integrated menu logic).
  * Displays a list of cities and allows the user to view details of a selected city.
  *
@@ -570,6 +599,7 @@ void viewCities(Province *province)
     int i = 0;
     int exitFlag = 0;
     City *city = NULL;
+    int sortChoice = 0;
     
     if (province->numCities == 0)
     {
@@ -577,6 +607,25 @@ void viewCities(Province *province)
     }
     else
     {
+        // Prompt user for sorting method
+        printf("How would you like to view the cities?\n");
+        printf("[1] Alphabetically\n");
+        printf("[2] By highest population density\n");
+        printf("Enter choice: ");
+        scanf("%d", &sortChoice);
+        getchar();
+        if (sortChoice == 1) {
+            sortCities(province, 0);
+        } else if (sortChoice == 2) {
+            // Ensure city metrics are up to date before sorting by density
+            for (i = 0; i < province->numCities; i++) {
+                calculateCityMetrics(&province->cities[i]);
+            }
+            sortCities(province, 1);
+        } else {
+            printf("Invalid choice. Defaulting to alphabetical.\n");
+            sortCities(province, 0);
+        }
         exitFlag = 0;
         while (!exitFlag)
         {
@@ -676,41 +725,44 @@ void addCity(Province *province)
                 if (city->numBarangays >= MAX_BARANGAYS)
                 {
                     printf("Maximum number of barangays reached for this city.\n");
-                    break;
-                }
-                barangayIndex = city->numBarangays;
-                city->barangayNames[barangayIndex][0] = '\0';
-                city->populationSizes[barangayIndex] = 0;
-                city->areas[barangayIndex] = 0.0f;
-                city->avgHouseholdSizes[barangayIndex] = 0.0f;
-                city->formalHousingUnits[barangayIndex] = 0;
-                printf("Enter barangay name: ");
-                // Reads barangay name
-                fgets(city->barangayNames[barangayIndex], sizeof(city->barangayNames[barangayIndex]), stdin);
-                // Removes newline character
-                city->barangayNames[barangayIndex][strcspn(city->barangayNames[barangayIndex], "\n")] = '\0';
-                printf("Enter population size: ");
-                // Reads population size, area, household size, housing units
-                scanf("%d", &city->populationSizes[barangayIndex]);
-                printf("Enter total area (km^2): ");
-                scanf("%f", &city->areas[barangayIndex]);
-                printf("Enter average household size: ");
-                scanf("%f", &city->avgHouseholdSizes[barangayIndex]);
-                printf("Enter number of formal housing units: ");
-                scanf("%d", &city->formalHousingUnits[barangayIndex]);
-                // Clears buffer
-                getchar();
-                city->numBarangays++;
-                printf("Barangay added.\n");
-                if (city->numBarangays < MAX_BARANGAYS)
-                {
-                    printf("Add another barangay to this city? (y/n): ");
-                    scanf(" %c", &addMore);
-                    getchar();
+                    addMore = 'n';
                 }
                 else
                 {
-                    addMore = 'n';
+                    barangayIndex = city->numBarangays;
+                    city->barangayNames[barangayIndex][0] = '\0';
+                    city->populationSizes[barangayIndex] = 0;
+                    city->areas[barangayIndex] = 0.0f;
+                    city->avgHouseholdSizes[barangayIndex] = 0.0f;
+                    city->formalHousingUnits[barangayIndex] = 0;
+                    printf("Enter barangay name: ");
+                    // Reads barangay name
+                    fgets(city->barangayNames[barangayIndex], sizeof(city->barangayNames[barangayIndex]), stdin);
+                    // Removes newline character
+                    city->barangayNames[barangayIndex][strcspn(city->barangayNames[barangayIndex], "\n")] = '\0';
+                    printf("Enter population size: ");
+                    // Reads population size, area, household size, housing units
+                    scanf("%d", &city->populationSizes[barangayIndex]);
+                    printf("Enter total area (km^2): ");
+                    scanf("%f", &city->areas[barangayIndex]);
+                    printf("Enter average household size: ");
+                    scanf("%f", &city->avgHouseholdSizes[barangayIndex]);
+                    printf("Enter number of formal housing units: ");
+                    scanf("%d", &city->formalHousingUnits[barangayIndex]);
+                    // Clears buffer
+                    getchar();
+                    city->numBarangays++;
+                    printf("Barangay added.\n");
+                    if (city->numBarangays < MAX_BARANGAYS)
+                    {
+                        printf("Add another barangay to this city? (y/n): ");
+                        scanf(" %c", &addMore);
+                        getchar();
+                    }
+                    else
+                    {
+                        addMore = 'n';
+                    }
                 }
             }
             calculateCityMetrics(city);
@@ -923,7 +975,6 @@ void searchCity(Province *province)
                 printf("  Total Formal Housing Units: %d\n", city->totalHousingUnits);
                 printf("  HPI: %.2f\n", city->HPI);
                 exitFlag = 1;
-                break;
             }
         }
         if (!found)
@@ -1007,7 +1058,8 @@ int main()
     int resetChoice = 0;
 
     // Continues until user chooses to exit
-    while (1)
+    int mainExitFlag = 0;
+    while (!mainExitFlag)
     {
         printf("\n[1] Add new File\n");
         printf("[2] Load File\n");
@@ -1035,7 +1087,8 @@ int main()
             saveProvinceEncrypted(province.username, &province);
             printf("File created and saved as %s.txt. Please login.\n", province.username);
             // Login after creation
-            while (1)
+            int loginExitFlag = 0;
+            while (!loginExitFlag)
             {
                 printf("Enter username: ");
                 fgets(username, sizeof(username), stdin);
@@ -1043,23 +1096,25 @@ int main()
                 if (strcmp(username, province.username) != 0)
                 {
                     printf("Incorrect username. Try again.\n");
-                    continue;
-                }
-                printf("Enter password: ");
-                fgets(password, sizeof(password), stdin);
-                password[strcspn(password, "\n")] = '\0';
-                if (strcmp(password, province.password) == 0)
-                {
-                    loggedIn = 1;
-                    break;
                 }
                 else
                 {
-                    printf("Incorrect password.\n");
+                    printf("Enter password: ");
+                    fgets(password, sizeof(password), stdin);
+                    password[strcspn(password, "\n")] = '\0';
+                    if (strcmp(password, province.password) == 0)
+                    {
+                        loggedIn = 1;
+                        loginExitFlag = 1;
+                    }
+                    else
+                    {
+                        printf("Incorrect password.\n");
+                    }
                 }
             }
             if (loggedIn)
-                break;
+                mainExitFlag = 1;
         }
         else if (mainChoice == 2)
         {
@@ -1073,7 +1128,8 @@ int main()
                 continue;
             }
             passwordAttempts = 0;
-            while (1)
+            int loginExitFlag = 0;
+            while (!loginExitFlag)
             {
                 printf("Enter password: ");
                 fgets(password, sizeof(password), stdin);
@@ -1081,7 +1137,7 @@ int main()
                 if (strcmp(password, province.password) == 0)
                 {
                     loggedIn = 1;
-                    break;
+                    loginExitFlag = 1;
                 }
                 else
                 {
@@ -1103,13 +1159,13 @@ int main()
                         }
                         else
                         {
-                            break;
+                            loginExitFlag = 1;
                         }
                     }
                 }
             }
             if (loggedIn)
-                break;
+                mainExitFlag = 1;
         }
         else if (mainChoice == 3)
         {
@@ -1117,7 +1173,7 @@ int main()
             fillDummyData(&province);
             strcpy(filename, "dummy.dat");
             loggedIn = 1;
-            break;
+            mainExitFlag = 1;
         }
         else if (mainChoice == 4)
         {
