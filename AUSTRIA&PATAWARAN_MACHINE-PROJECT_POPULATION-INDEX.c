@@ -11,7 +11,7 @@ typedef struct {
     char name[50];
     int numBarangays;
 
-    // 2D arrays for barangay data
+    // arrays for barangay data
     int populationSizes[MAX_BARANGAYS];
     float areas[MAX_BARANGAYS];
     float avgHouseholdSizes[MAX_BARANGAYS];
@@ -40,8 +40,8 @@ typedef struct {
 // Function prototypes
 void caesar_encrypt(char *data, int len); // Carlos
 void caesar_decrypt(char *data, int len); // Carlos
-int saveProvinceEncrypted(const char *username, Province *province); // Paolo
-int loadProvinceEncrypted(const char *username, Province *province); // Paolo
+int saveProvinceEncrypted(const char *provinceName, Province *province); // Paolo
+int loadProvinceEncrypted(const char *provinceName, Province *province); // Paolo
 float calculateAvgHouseholdSize(City *c); // Paolo
 void calculateCityMetrics(City *city); // Paolo
 float calculateProvinceHPI(Province *p); // Paolo
@@ -91,14 +91,14 @@ void caesar_decrypt(char *data, int len)
 }
 
 /**
- * Saves the Province struct to an encrypted file named <username>.txt.
+ * Saves the Province struct to an encrypted file named <province>.txt.
  * Uses Caesar cipher for encryption.
  *
- * @param username The username to use as the filename.
+ * @param provinceName The province name to use as the filename.
  * @param province Pointer to the Province struct to save.
  * @return 1 on success, 0 on failure.
  */
-int saveProvinceEncrypted(const char *username, Province *province)
+int saveProvinceEncrypted(const char *provinceName, Province *province)
 {
     char filename[128];
     FILE *fp;
@@ -107,7 +107,7 @@ int saveProvinceEncrypted(const char *username, Province *province)
     char temp[sizeof(Province)];
     int result = 0;
     
-    snprintf(filename, sizeof(filename), "%s.txt", username);
+    snprintf(filename, sizeof(filename), "%s.txt", provinceName);
     fp = fopen(filename, "wb");
     if (fp) {
         buffer = (char *)province;
@@ -124,14 +124,14 @@ int saveProvinceEncrypted(const char *username, Province *province)
 }
 
 /**
- * Loads the Province struct from an encrypted file named <username>.txt.
+ * Loads the Province struct from an encrypted file named <province>.txt.
  * Decrypts the file using Caesar cipher.
  *
- * @param username The username to use as the filename.
+ * @param provinceName The province name to use as the filename.
  * @param province Pointer to the Province struct to load into.
  * @return 1 on success, 0 on failure.
  */
-int loadProvinceEncrypted(const char *username, Province *province)
+int loadProvinceEncrypted(const char *provinceName, Province *province)
 {
     char filename[128];
     FILE *fp;
@@ -140,7 +140,7 @@ int loadProvinceEncrypted(const char *username, Province *province)
     int read;
     int result = 0;
     
-    snprintf(filename, sizeof(filename), "%s.txt", username);
+    snprintf(filename, sizeof(filename), "%s.txt", provinceName);
     fp = fopen(filename, "rb");
     if (fp) {
         len = sizeof(Province);
@@ -564,7 +564,6 @@ void editBarangay(City *city)
  * @param province Pointer to the Province struct.
  * @param sortBy 0 for alphabetical, 1 for population density.
  *
- * Relevant lines: 567-628 (viewCities)
  */
 void sortCities(Province *province, int sortBy)
 {
@@ -592,6 +591,7 @@ void sortCities(Province *province, int sortBy)
  * Displays a list of cities and allows the user to view details of a selected city.
  *
  * @param province Pointer to the Province struct.
+ * 
  */
 void viewCities(Province *province)
 {
@@ -1033,7 +1033,7 @@ void provinceMenu(Province *province, const char *filename)
             printf("Overall Province HPI: %.2f\n", province->overallHPI);
             break;
         case 7:
-            saveProvinceEncrypted(filename, province);
+            saveProvinceEncrypted(province->provinceName, province);
             printf("Data saved. Exiting...\n");
             break;
         default:
@@ -1056,9 +1056,10 @@ int main()
     char password[100] = "";
     int passwordAttempts = 0;
     int resetChoice = 0;
-
-    // Continues until user chooses to exit
     int mainExitFlag = 0;
+    int returnValue = 0;
+    int loginExitFlag = 0;
+
     while (!mainExitFlag)
     {
         printf("\n[1] Add new File\n");
@@ -1084,10 +1085,10 @@ int main()
             province.password[strcspn(province.password, "\n")] = '\0';
             province.numCities = 0;
             province.overallHPI = 0;
-            saveProvinceEncrypted(province.username, &province);
-            printf("File created and saved as %s.txt. Please login.\n", province.username);
+            saveProvinceEncrypted(province.provinceName, &province);
+            printf("File created and saved as %s.txt. Please login.\n", province.provinceName);
             // Login after creation
-            int loginExitFlag = 0;
+            loginExitFlag = 0;
             while (!loginExitFlag)
             {
                 printf("Enter username: ");
@@ -1119,53 +1120,61 @@ int main()
         else if (mainChoice == 2)
         {
             // Load file and login/reset password
-            printf("Enter username to load: ");
-            fgets(username, sizeof(username), stdin);
-            username[strcspn(username, "\n")] = '\0';
-            if (!loadProvinceEncrypted(username, &province))
+            printf("Enter province name to load: ");
+            fgets(filename, sizeof(filename), stdin);
+            filename[strcspn(filename, "\n")] = '\0';
+            int fileLoaded = 0;
+            if (!loadProvinceEncrypted(filename, &province))
             {
-                printf("File not found for username '%s'.\n", username);
-                continue;
+                printf("File not found for province '%s'.\n", filename);
+                fileLoaded = 0;
             }
-            passwordAttempts = 0;
-            int loginExitFlag = 0;
-            while (!loginExitFlag)
+            else
             {
-                printf("Enter password: ");
-                fgets(password, sizeof(password), stdin);
-                password[strcspn(password, "\n")] = '\0';
-                if (strcmp(password, province.password) == 0)
+                fileLoaded = 1;
+            }
+            if (fileLoaded)
+            {
+                passwordAttempts = 0;
+                int loginExitFlag = 0;
+                while (!loginExitFlag)
                 {
-                    loggedIn = 1;
-                    loginExitFlag = 1;
-                }
-                else
-                {
-                    printf("Incorrect password.\n");
-                    passwordAttempts++;
-                    if (passwordAttempts >= 1)
+                    printf("Enter password: ");
+                    fgets(password, sizeof(password), stdin);
+                    password[strcspn(password, "\n")] = '\0';
+                    if (strcmp(password, province.password) == 0)
                     {
-                        printf("Do you want to reset the password? (1 = Yes, 0 = No): ");
-                        scanf("%d", &resetChoice);
-                        getchar();
-                        if (resetChoice == 1)
+                        loggedIn = 1;
+                        loginExitFlag = 1;
+                    }
+                    else
+                    {
+                        printf("Incorrect password.\n");
+                        passwordAttempts++;
+                        if (passwordAttempts >= 1)
                         {
-                            printf("Enter new password: ");
-                            fgets(province.password, sizeof(province.password), stdin);
-                            province.password[strcspn(province.password, "\n")] = '\0';
-                            saveProvinceEncrypted(username, &province);
-                            printf("Password reset. Please login again.\n");
-                            passwordAttempts = 0;
-                        }
-                        else
-                        {
-                            loginExitFlag = 1;
+                            printf("Do you want to reset the password? (1 = Yes, 0 = No): ");
+                            scanf("%d", &resetChoice);
+                            getchar();
+                            if (resetChoice == 1)
+                            {
+                                printf("Enter new password: ");
+                                fgets(province.password, sizeof(province.password), stdin);
+                                province.password[strcspn(province.password, "\n")] = '\0';
+                                saveProvinceEncrypted(province.provinceName, &province);
+                                printf("Password reset. Please login again.\n");
+                                passwordAttempts = 0;
+                            }
+                            else
+                            {
+                                loginExitFlag = 1;
+                            }
                         }
                     }
                 }
+                if (loggedIn)
+                    mainExitFlag = 1;
             }
-            if (loggedIn)
-                mainExitFlag = 1;
         }
         else if (mainChoice == 3)
         {
@@ -1178,7 +1187,8 @@ int main()
         else if (mainChoice == 4)
         {
             printf("Exiting...\n");
-            return 0;
+            returnValue = 0;
+            mainExitFlag = 1;
         }
         else
         {
@@ -1188,8 +1198,8 @@ int main()
 
     if (loggedIn)
     {
-        provinceMenu(&province, province.username); // use username for saving
+        provinceMenu(&province, province.provinceName); // use province name for saving
     }
 
-    return 0;
+    return returnValue;
 }
