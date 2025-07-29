@@ -1086,6 +1086,15 @@ void provinceMenu(Province *province, const char *filename)
             viewCities(province);
             break;
         case 6:
+
+            printf("\n--- HPI Standards Reference ---\n");
+            printf("| %-12s | %-20s |\n", "HPI Range", "Standard");
+            printf("|-------------------|-------------------|\n");
+            printf("| HPI >= 15         | Overcrowded       |\n");
+            printf("| 6 <= HPI <= 14    | Urban standard    |\n");
+            printf("| HPI <= 5          | Rural standard    |\n");
+            printf("---------------------------------------------\n");
+
             printf("Overall Province HPI: %.2f\n", province->overallHPI);
             break;
         case 7:
